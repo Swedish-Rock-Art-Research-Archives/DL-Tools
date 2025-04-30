@@ -1,0 +1,19 @@
+# This CITATION.cff file was generated with Zotero.
+
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+title:  >-
+  Swedish-Rock-Art-Research-Archives/DL-Tools
+abstract: Deep learning and data processing tools developed by SHFA and within the Tracing the Carvers Project (University of Gothenburg)
+type: software
+license: MIT
+url: https://github.com/Swedish-Rock-Art-Research-Archives/DL-Tools
+authors: 
+  - family-names: Green
+    given-names: Ashely
+  - family-names: Potter
+    given-names: Rich
+  - family-names: Horn
+    given-names: Christian
+date-released: 2025-04-30
