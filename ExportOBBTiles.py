@@ -12,39 +12,18 @@ arcpy.env.addOutputsToMap = False
 arcpy.CheckOutExtension("ImageAnalyst")
 
 # Create any missing directories for the first processing stage and padded images
-def create_dirs(output_dir,padded_dir,split_data):
-    splits = ['images','labels','shapes','tile_extents','bounding_geom']
-    subdirs = ['train','val','test']
-
-    for split in splits:
-        if split_data: 
-            for subdir in subdirs:
-                if not os.path.exists(os.path.join(output_dir,split,subdir)):
-                    os.makedirs(os.path.join(output_dir,split,subdir))
-                if not os.path.exists(os.path.join(padded_dir,split,subdir)):
-                    os.makedirs(os.path.join(padded_dir,split,subdir))
-                if not os.path.exists(os.path.join(padded_dir,'tiffs',subdir)):
-                        os.makedirs(os.path.join(padded_dir,'tiffs',subdir))
-                if not os.path.exists(os.path.join(padded_dir,'blank_imgs',subdir)):
-                    os.makedirs(os.path.join(padded_dir,'blank_imgs',subdir))
-        else:
-            if not os.path.exists(os.path.join(output_dir,split)):
-                os.makedirs(os.path.join(output_dir,split))
-            if not os.path.exists(os.path.join(padded_dir,split)):
-                os.makedirs(os.path.join(padded_dir,split))
-            if not os.path.exists(os.path.join(padded_dir,'tiffs')):
-                    os.makedirs(os.path.join(padded_dir,'tiffs'))
-            if not os.path.exists(os.path.join(padded_dir,'blank_imgs')):
-                    os.makedirs(os.path.join(padded_dir,'blank_imgs'))
+def create_dirs(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 def tile_raster(img_file,out_img_dir,tile_size,overlap,base_name):
+    create_dirs(out_img_dir)
     SplitRaster(img_file,out_img_dir,base_name,"SIZE_OF_TILE",
         "PNG","BILINEAR","#",f"{tile_size} {tile_size}",overlap
         )
 
-def clip_shapes(shp_file,out_img_dir,tile_img,ext_dir,out_bound):
-    out_extent = tile_img.replace(out_img_dir,ext_dir).replace('.png','_EXTENT.shp')
-    tile_extent = arcpy.ddd.RasterDomain(tile_img, out_extent, "POLYGON")
+def clip_shapes(shp_file,tile_img,ext_path,out_bound):
+    tile_extent = arcpy.ddd.RasterDomain(tile_img, ext_path, "POLYGON")
     Clip(
         in_features=shp_file,
         clip_features=tile_extent,
@@ -150,11 +129,7 @@ def create_labels(img_file,min_area,padded_img_dir,blank_img_dir,geom_file,out_l
             shutil.move(img_file,img_file.replace(padded_img_dir,blank_img_dir))
 
     else:
-        shutil.move(img_file,img_file.replace(padded_img_dir,blank_img_dir))
-
-# def script_tool(img_dir,out_img_dir,shape_dir,min_area,padded_img_dir,blank_img_dir,padded_label_dir,tile_size,overlap):
-    # Tile all images and add the base names to a list for the remaining processing steps
-    
+        shutil.move(img_file,img_file.replace(padded_img_dir,blank_img_dir)) 
 
 
 if __name__ == "__main__":
@@ -167,7 +142,7 @@ if __name__ == "__main__":
     # gdb = arcpy.GetParameterAsText(4)
     tile_size = arcpy.GetParameterAsText(3)
     overlap = arcpy.GetParameterAsText(4)
-    split = arcpy.GetParameterAsText(5)
+    split = arcpy.GetParameter(5)
     # img_suffix = arcpy.GetParametersAsText(6)
     min_area = arcpy.GetParameterAsText(6)
 
@@ -176,15 +151,23 @@ if __name__ == "__main__":
     out_label_dir = f"{output_dir}/labels"
     out_shp_dir = f"{output_dir}/shapes"
     out_ext_dir = f"{output_dir}/tile_extents" 
-    out_bound_dir = f"{output_dir}/bounding_geom"
+    
 
     padded_dir = f"{working_dir}/yolo_obb_tiled_{tile_size}sz_{overlap}ov_PADDED/"
     padded_img_dir = f"{padded_dir}/images"
     padded_tif_dir =f"{padded_dir}/tiffs"
     padded_label_dir = f"{padded_dir}/labels"
+    out_bound_dir = f"{padded_dir}/shapes"
 
     blank_img_dir = f"{padded_dir}/blank_imgs"
-    create_dirs(output_dir,padded_dir,split)
+    for folder in [out_img_dir,out_label_dir,out_shp_dir,out_ext_dir,out_bound_dir,padded_img_dir,padded_tif_dir,padded_label_dir,blank_img_dir]:
+        if split:
+            splits = ['test','train','val']
+            for split_dir in splits:
+                create_dirs(f"{folder}/{split_dir}")
+        else:
+            create_dirs(folder)
+
     arcpy.AddMessage('Running script tool...')
     # script_tool(img_dir,out_img_dir,shape_dir,min_area,padded_img_dir,blank_img_dir,padded_label_dir,tile_size,overlap)
     img_dir = f"{main_img_dir}/*/*" if split else f"{main_img_dir}/*"
@@ -194,12 +177,13 @@ if __name__ == "__main__":
                     0, len(file_list), 1)
 
     for file in file_list:
-        if split == 'true':
-            split_val = file.split('//')[-1].split('\\')[-2] #str(os.path.split(file)[0]).split('/\/')[-1]
+        if split:
+            split_val = os.path.normpath(file).split(os.sep)[-2]
         else:
             split_val=''
-        base_img_dir = f"{out_img_dir}/{split_val}"
 
+
+        base_img_dir = f"{out_img_dir}/{split_val}"
         base_name = os.path.splitext(os.path.split(file)[-1])[0]
         tile_raster(file,base_img_dir,tile_size,overlap,base_name)
         arcpy.AddMessage(base_name)
@@ -209,11 +193,11 @@ if __name__ == "__main__":
             shp_file = f"{shape_dir}/{split_val}/{base_name}.shp"
             shp_bound_dir = f"{out_bound_dir}/{split_val}"
             out_file=f"{padded_tif_dir}/{split_val}/{tile_name}"
-            ext_dir=f"{out_ext_dir}/{split_val}"
+            ext_path=f"{out_ext_dir}/{split_val}/{tile_name}_EXTENT.shp"
             pad_dir = f"{padded_img_dir}/{split_val}"
             lbl_dir= f"{padded_label_dir}/{split_val}"
-            
-            clip_shapes(shp_file,base_img_dir,tile,ext_dir,out_bound=f"{shp_bound_dir}/{base_name}.shp")
-            pad_tile(file,tile,base_name,shp_bound_dir,out_file,pad_dir)
-            create_labels(tile,min_area,padded_img_dir,blank_img_dir,shp_file,lbl_dir,tile_name)
+
+            clip_shapes(shp_file,tile,ext_path,out_bound=f"{shp_bound_dir}/{tile_name}.shp")
+            pad_tile(file,tile,tile_name,shp_bound_dir,out_file,pad_dir)
+            create_labels(tile,min_area,padded_img_dir,blank_img_dir,f"{shp_bound_dir}/{tile_name}.shp",lbl_dir,tile_name)
             arcpy.SetProgressorPosition()
