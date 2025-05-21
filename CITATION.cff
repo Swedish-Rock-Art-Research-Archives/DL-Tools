@@ -5,7 +5,7 @@ message: >-
   If you use this software, please cite it using the metadata from this file.
 title:  >-
   Swedish-Rock-Art-Research-Archives/DL-Tools
-abstract: Deep learning and data processing tools developed by SHFA and within the Tracing the Carvers Project (University of Gothenburg)
+abstract: Deep learning and data processing tools developed by SHFA and within the Tracing Carvers Project (University of Gothenburg)
 type: software
 version: v1.0.2
 url: https://github.com/Swedish-Rock-Art-Research-Archives/DL-Tools
