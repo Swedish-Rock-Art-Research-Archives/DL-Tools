@@ -7,7 +7,7 @@ title:  >-
   Swedish-Rock-Art-Research-Archives/DL-Tools
 abstract: Deep learning and data processing tools developed by SHFA and within the Tracing the Carvers Project (University of Gothenburg)
 type: software
-license: MIT
+version: v1.0.2
 url: https://github.com/Swedish-Rock-Art-Research-Archives/DL-Tools
 authors: 
   - family-names: Green
@@ -16,4 +16,8 @@ authors:
     given-names: Rich
   - family-names: Horn
     given-names: Christian
-date-released: 2025-04-30
+date-released: 2025-05-21
+identifiers: 
+  - type: doi
+    value: 10.5281/zenodo.15479373
+
